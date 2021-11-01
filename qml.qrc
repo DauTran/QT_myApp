@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>common/ListDelegate.qml</file>
+        <file>images/folder.png</file>
+        <file>images/menu.png</file>
+        <file>images/remove.png</file>
+        <file>images/file.png</file>
+        <file>images/Range.png</file>
+    </qresource>
+</RCC>
