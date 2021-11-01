@@ -1,2 +1,2 @@
 # QT_myApp
-enemy spotted, just kidding!
+enemy spotted, it's ok!
