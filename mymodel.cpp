@@ -2,23 +2,31 @@
 #include <QtCore>
 #include "mymodel.h"
 
-MyModel::MyModel(QObject *parent) : QAbstractListModel(parent), m_path("A:/")
+MyModel::MyModel(QObject *parent) : QAbstractListModel(parent)
 {
-    QDir dir(m_path);
-    for(QFileInfo var: dir.entryInfoList())
+    QFileInfoList drives = QDir::drives();
+    for(QFileInfo drive : drives)
     {
-        if(var.isDir())
-        {
-            m_data << Data(var.fileName(), "qrc:images/folder.png");
-            qDebug() << var.fileName();
-        }
-        if(var.isFile())
-        {
-             m_data << Data(var.fileName(), "qrc:images/file.png");
-             qDebug() << var.fileName();
-        }
-
+        m_data << Data(drive.filePath(), "qrc:images/drive.png");
+        qDebug() << "fileName:" << drive.fileName();
+        qDebug() << "filePath: " << drive.filePath();
     }
+
+//    QDir dir(m_path);
+//    for(QFileInfo var: dir.entryInfoList())
+//    {
+//        if(var.isDir())
+//        {
+//            m_data << Data(var.fileName(), "qrc:images/folder.png");
+//            qDebug() << var.fileName();
+//        }
+//        if(var.isFile())
+//        {
+//             m_data << Data(var.fileName(), "qrc:images/file.png");
+//             qDebug() << var.fileName();
+//        }
+
+//    }
 }
 
 int MyModel::rowCount(const QModelIndex &parent) const

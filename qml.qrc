@@ -7,5 +7,6 @@
         <file>images/remove.png</file>
         <file>images/file.png</file>
         <file>images/Range.png</file>
+        <file>images/drive.png</file>
     </qresource>
 </RCC>
