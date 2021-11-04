@@ -8,5 +8,6 @@
         <file>images/file.png</file>
         <file>images/Range.png</file>
         <file>images/drive.png</file>
+        <file>common/Structure.qml</file>
     </qresource>
 </RCC>

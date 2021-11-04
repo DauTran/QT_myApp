@@ -2,14 +2,10 @@ import QtQuick 2.5
 import QtQuick.Window 2.12
 import QtQuick.Controls 2.1
 import QtQuick.Dialogs 1.2
-//import QtQuick.Controls.Material 2.1
-//import "./common"
+import QtQuick.Controls.Material 2.1
 
-
-//import org.backend 1.0
-//import org.model.entry 1.0
-//import org.mymodel 1.0
-
+import org.mymodel 1.0
+import "common"
 
 Window {
     id: window
@@ -17,6 +13,8 @@ Window {
     width: 640
     height: 480
     title: qsTr("Hello World")
+    minimumHeight: 500
+    minimumWidth: 300
 
     Page
     {
@@ -46,39 +44,40 @@ Window {
         }
 
         ListView {
-            id: view
+            id: _view
             anchors.fill: parent
-//            orientation: ListView.Vertical
-            model: myModel
-            delegate: Rectangle
-            {
-                id: row
-                height: childrenRect.height
+            model: MyModel { id: myModel}
+            focus:true // enable using keyboard
+            clip: true // enable cut element in the end of row
+            currentIndex: -1
+            highlight: Rectangle { color: "lightsteelblue" }
+            delegate: Item{
+                id: myDelegate
+                height: 30
                 width: parent.width
-                border.color: Qt.darker(color)
-
+                //                border.color: Qt.darker(color)
                 Image {
                     id: image
                     source: model.icon
                     width: 25
                     height: 25
                     fillMode: Image.PreserveAspectFit
-
                     anchors { left:parent.left }
                 }
                 Text {
                     text: model.name
-                    anchors { left:image.right; verticalCenter: image.verticalCenter; leftMargin: 5}
+                    anchors { left:image.right; verticalCenter: image.verticalCenter; leftMargin: 5; rightMargin: 5}
+                    width: parent.width - 100
+
+                    elide: Text.ElideRight
                     font.pixelSize: 24
                     MouseArea {
                         anchors.fill: parent
                         onClicked:
                         {
-//                            myModel.createNewData(model.index);
-//                            model.path = "C:/Users/theda/.vscode/extensions/ms-vscode.cpptools-1.7.0"
                             myModel.changeData(model.index);
-//                            myModel.clear();
-//                            console.log("Push")
+                            myDelegate.ListView.view.currentIndex = index;
+                            console.log("he " + myDelegate.ListView.view.currentIndex + " // " + model.index)
                         }
                     }
                 }
@@ -86,17 +85,11 @@ Window {
                 // icon remove
                 Image {
                     id: iconRemove
-                    source: "../images/remove.png"
+                    source: "images/remove.png"
                     width: 25
                     height: 25
                     fillMode: Image.PreserveAspectFit
-                    Rectangle{
-                        anchors.fill: parent
-                        color: "white"
-                        z: -1
-                    }
-
-                    anchors { right:parent.right }
+                    anchors { right: parent.right; rightMargin: 5 }
                     MouseArea {
                         anchors.fill: parent
                         onClicked:
@@ -106,8 +99,10 @@ Window {
                     }
                 }
             }
+
         }
-//        highlight: Rectangle { color: "lightsteelblue"}
+
+
 
 
 
@@ -148,6 +143,10 @@ Window {
             focus: true
             currentIndex: -1
             anchors.fill: parent
+            highlight: Rectangle {
+                anchors{ left: parent.left; right: parent.right}
+                color: "lightsteelblue"
+            }
 
             delegate: ItemDelegate {
                 width: parent.width
@@ -191,31 +190,10 @@ Window {
                 ListElement
                 {
                     text: qsTr("File")
-//                    Button
-//                    {
-//                        MouseArea
-//                        {
-//                            anchors.fill: parent
-//                            onClicked:
-//                            {
-//                                myModel.passFile()
-//                                console.log("file push");
-//                            }
-//                        }
-//                    }
                 }
                 ListElement
                 {
                     text: qsTr("Folder")
-//                    MouseArea
-//                    {
-//                        anchors.fill: parent
-//                        onClicked:
-//                        {
-//                            myModel.passFolder()
-//                            console.log("folder.log");
-//                        }
-//                    }
                 }
             }
             ScrollIndicator.vertical: ScrollIndicator {}
