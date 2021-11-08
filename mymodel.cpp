@@ -9,9 +9,15 @@ MyModel::MyModel(QObject *parent) : QAbstractListModel(parent), m_path("")
     {
         QString temp = drive.path();
         temp.chop(1);
-        m_data << Data(temp, "qrc:images/drive.png");
+        m_data << Data(temp, "qrc:images/drive.png", unchecked);
 
     }
+
+//    qDebug() << "Init list";
+//    for(Data temp: m_data)
+//    {
+//        qDebug() << "The name: " << temp.name << " Status: " << temp.check;
+//    }
 }
 
 int MyModel::rowCount(const QModelIndex &parent) const
@@ -32,6 +38,10 @@ QVariant MyModel::data(const QModelIndex &index, int role) const
     }
     else if ( role == IconRole )
         return data.icon;
+    else if (role == CheckRole)
+    {
+        return data.check;
+    }
     else
         return QVariant();
 }
@@ -39,9 +49,10 @@ QVariant MyModel::data(const QModelIndex &index, int role) const
 QHash<int, QByteArray> MyModel::roleNames() const
 {
     static QHash<int, QByteArray> mapping {
-          {NameRole, "name"},
-          {IconRole, "icon"},
-      };
+        {NameRole, "name"},
+        {IconRole, "icon"},
+        {CheckRole, "check"},
+    };
     return mapping;
 }
 
@@ -50,6 +61,14 @@ void MyModel::clear()
     emit beginResetModel();
     m_data.clear();
     emit endResetModel();
+}
+
+void MyModel::deleteSelection()
+{
+    for(Data temp: m_data)
+    {
+        qDebug() << "The name: " << temp.name << " Status: " << temp.check;
+    }
 }
 
 //void MyModel::setPath(QString path)
@@ -136,11 +155,11 @@ void MyModel::passAll()
             {
                 continue;
             }
-            m_data << Data(var.fileName(), "qrc:images/folder.png");
+            m_data << Data(var.fileName(), "qrc:images/folder.png", false);
         }
         else if(var.isFile())
         {
-             m_data << Data(var.fileName(), "qrc:images/file.png");
+             m_data << Data(var.fileName(), "qrc:images/file.png", false);
         }
     }
     endResetModel();
@@ -156,7 +175,7 @@ void MyModel::passFile()
     {
         if(var.isFile())
         {
-             m_data << Data(var.fileName(), "qrc:images/file.png");
+             m_data << Data(var.fileName(), "qrc:images/file.png", false);
         }
     }
     endResetModel();
@@ -176,11 +195,16 @@ void MyModel::passFolder()
             {
                 continue;
             }
-            m_data << Data(var.fileName(), "qrc:images/folder.png");
+            m_data << Data(var.fileName(), "qrc:images/folder.png", false);
         }
 
     }
     endResetModel();
+}
+
+void MyModel::toggelStatus(int row)
+{
+    m_data[row].check = !m_data.at(row).check;
 }
 
 

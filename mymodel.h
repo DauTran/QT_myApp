@@ -3,23 +3,28 @@
 
 #include <QAbstractListModel>
 
+enum Statuses{ unchecked, checked };
+
 struct Data {
     Data() {}
-    Data( const QString& name, const QString& icon): name(name), icon(icon) {}
+    Data( const QString& name, const QString& icon, const bool& check): name(name), icon(icon), check(check) {}
 
     QString name;
     QString icon;
+    bool check;
 };
 
 class MyModel : public QAbstractListModel
 {
     Q_OBJECT
-//    Q_PROPERTY(QString path READ getPath WRITE setPath NOTIFY pathChanged)
+//    Q_PROPERTY(bool check READ getCheck WRITE setCheck NOTIFY Changed)
 public:
     enum Roles {
         NameRole = Qt::UserRole,
-        IconRole
+        IconRole,
+        CheckRole
     };
+
     explicit MyModel(QObject *parent = nullptr);
 
     int rowCount(const QModelIndex& parent) const override;
@@ -27,8 +32,10 @@ public:
     QHash<int, QByteArray> roleNames() const override;
 
     Q_INVOKABLE void clear();
-//    void setPath(QString path);
-//    QString getPath()const;
+    Q_INVOKABLE void deleteSelection();
+
+    bool getCheck() const;
+    void setCheck();
 
 public slots:
     void changeData(int row);
@@ -38,8 +45,7 @@ public slots:
     void passFile();
     void passFolder();
 
-// signals:
-//    void pathChanged();
+    void toggelStatus(int row);
 
 private: //members
     QVector< Data > m_data;

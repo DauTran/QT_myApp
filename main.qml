@@ -10,7 +10,7 @@ import "common"
 Window {
     id: window
     visible: true
-    width: 640
+    width: 550
     height: 480
     title: qsTr("Hello World")
     minimumHeight: 500
@@ -18,6 +18,7 @@ Window {
 
     Page
     {
+        id: rootPage
         anchors.fill: parent
         header: ToolBar
         {
@@ -43,30 +44,50 @@ Window {
             }
         }
 
+        property bool status: false
         ListView {
-            id: _view
+            id: _viewCenter
             anchors.fill: parent
             model: MyModel { id: myModel}
             focus:true // enable using keyboard
             clip: true // enable cut element in the end of row
             currentIndex: -1
             highlight: Rectangle { color: "lightsteelblue" }
-            delegate: Item{
+            layoutDirection: Qt.RightToLeft
+
+            delegate: Item
+            {
                 id: myDelegate
                 height: 30
                 width: parent.width
-                //                border.color: Qt.darker(color)
+//                property bool checked: model.check
+                Item{
+                    id: checkListElement
+                    visible: rootPage.status
+                    height: childrenRect.height
+                    width: childrenRect.width
+                    CheckBox
+                    {
+                        checked: model.check
+                        onClicked: {myModel.toggelStatus(model.index);
+                            console.log("Hi " + checked);
+//                      anchors.fill: parent
+                        }
+                    }
+
+                }
                 Image {
                     id: image
                     source: model.icon
                     width: 25
                     height: 25
                     fillMode: Image.PreserveAspectFit
-                    anchors { left:parent.left }
+                    anchors { right: txtRow.left; rightMargin: 5}
                 }
                 Text {
+                    id: txtRow
                     text: model.name
-                    anchors { left:image.right; verticalCenter: image.verticalCenter; leftMargin: 5; rightMargin: 5}
+                    anchors { right: iconRemove.left; verticalCenter: image.verticalCenter; leftMargin: 5; rightMargin: 5}
                     width: parent.width - 100
 
                     elide: Text.ElideRight
@@ -89,7 +110,7 @@ Window {
                     width: 25
                     height: 25
                     fillMode: Image.PreserveAspectFit
-                    anchors { right: parent.right; rightMargin: 5 }
+                    anchors { topMargin: 5; right: parent.right; rightMargin: 5 }
                     MouseArea {
                         anchors.fill: parent
                         onClicked:
@@ -99,38 +120,63 @@ Window {
                     }
                 }
             }
+        }
+        footer: Rectangle
+        {
+            id: footer
+            width: parent.width
+            height: 30
+            color: "#F4F1F0"
+            Button
+            {
+                id: footerOption
+                property bool status: false
+                anchors.right: parent.right
+                text: "..."
+                font.pixelSize: 20
+                width: this.height
+
+                onClicked:
+                {
+                    console.log("ok");
+                }
+            }
+            Button
+            {
+                id: footerChoice
+                icon.source: "images/singleChoice.png"
+                onClicked:
+                { rootPage.status = !rootPage.status;
+//                  footerDelete.enabled = rootPage.status
+                  console.log("choice pressed")
+                }
+            }
+            Button
+            {
+                id: footerSearch
+                icon.source: "images/search.png"
+                x: footerDelete.width + 5
+                enabled: !rootPage.status
+                onClicked: console.log("search");
+            }
+            Button
+            {
+                id: footerDelete
+                icon.source: "images/remove.png"
+                x: footerSearch.x + footerSearch.width + 5
+                enabled: rootPage.status
+                onClicked:
+                {
+                    console.log("delete Pressed ")
+
+                    myModel.deleteSelection();
+                }
+            }
 
         }
-
-
-
-
-
-//        ListView
-//        {
-//            id: view
-//            anchors.fill: parent
-
-//            model: DataEntryModel {id: dataEntryModel; path: "A:/Fresher C++/"}
-
-//            delegate: ListDelegate
-//            {
-////              use the difined model role "display"
-//                text: model.display
-
-//                onClicked: {
-//                    // make this delegate the current item, highlight
-//                    view.currentIndex = index
-//                    view.focus = true
-//                }
-
-//            }
-//            highlight: Rectangle { color: "lightsteelblue"}
-////            highlight: ListHighlight { }
-//        }
-
     }
 
+    //menubar
     Drawer
     {
         id: drawer
@@ -178,14 +224,6 @@ Window {
                 ListElement
                 {
                     text: qsTr("All")
-//                    MouseArea
-//                    {
-//                        anchors.fill: parent
-//                        onClicked:
-//                        {
-////                            myModel.pas
-//                        }
-//                    }
                 }
                 ListElement
                 {
@@ -203,6 +241,28 @@ Window {
 }
 
 
+//        ListView
+//        {
+//            id: view
+//            anchors.fill: parent
+
+//            model: DataEntryModel {id: dataEntryModel; path: "A:/Fresher C++/"}
+
+//            delegate: ListDelegate
+//            {
+////              use the difined model role "display"
+//                text: model.display
+
+//                onClicked: {
+//                    // make this delegate the current item, highlight
+//                    view.currentIndex = index
+//                    view.focus = true
+//                }
+
+//            }
+//            highlight: Rectangle { color: "lightsteelblue"}
+////            highlight: ListHighlight { }
+//        }
 
 
 

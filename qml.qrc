@@ -9,5 +9,7 @@
         <file>images/Range.png</file>
         <file>images/drive.png</file>
         <file>common/Structure.qml</file>
+        <file>images/search.png</file>
+        <file>images/singleChoice.png</file>
     </qresource>
 </RCC>

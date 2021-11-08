@@ -31,8 +31,6 @@ int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
-
-
     qmlRegisterType<MyModel>("org.mymodel", 1, 0, "MyModel");
 
     // register the type DataEntryModel
