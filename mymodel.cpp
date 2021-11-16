@@ -4,20 +4,7 @@
 
 MyModel::MyModel(QObject *parent) : QAbstractListModel(parent), m_path("")
 {
-    QFileInfoList drives = QDir::drives();
-    for(QFileInfo drive : drives)
-    {
-        QString temp = drive.path();
-        temp.chop(1);
-        m_data << Data(temp, "qrc:images/drive.png", unchecked);
-
-    }
-
-//    qDebug() << "Init list";
-//    for(Data temp: m_data)
-//    {
-//        qDebug() << "The name: " << temp.name << " Status: " << temp.check;
-//    }
+    passAll();
 }
 
 int MyModel::rowCount(const QModelIndex &parent) const
@@ -56,6 +43,19 @@ QHash<int, QByteArray> MyModel::roleNames() const
     return mapping;
 }
 
+void MyModel::checkDataLength()
+{
+
+    if(m_data.length() == 0)
+    {
+        emit noData(true);
+    }
+    else
+    {
+        emit noData(false);
+    }
+}
+
 void MyModel::clear()
 {
     emit beginResetModel();
@@ -65,58 +65,70 @@ void MyModel::clear()
 
 void MyModel::deleteSelection()
 {
-    for(Data temp: m_data)
+    for(int i = 0; i < m_data.length(); i++)
     {
-        qDebug() << "The name: " << temp.name << " Status: " << temp.check;
+//        qDebug() << "The name: " << temp.name << " Status: " << temp.check;
+        if(m_data[i].check)
+        {
+            DelDir(m_path + m_data.at(i).name);
+            emit beginRemoveRows(QModelIndex(), i, i);
+            m_data.remove(i);
+            emit endRemoveRows();
+        }
     }
 }
 
-//void MyModel::setPath(QString path)
+
+//void MyModel::setPath(bool path)
 //{
-//    m_path = path;
+//    path = !path;
+//    emit changedPath();
 //}
 
-//QString MyModel::getPath() const
+//bool MyModel::getPath() const
 //{
-//    return m_path;
+//    return path;
 //}
 
 void MyModel::changeData(int row)
 {
+
     QFileInfo temp(m_path + m_data.at(row).name);
 
     if(temp.isDir())
     {
-//         m_path = temp.absolutePath();
          m_path =  m_path + m_data.at(row).name + "/";
-         qDebug() << "path: " << m_path;
+//         qDebug() << "path: " << m_path << "absolutePath: " << temp.absoluteFilePath();
          passAll();
+
+         checkDataLength();
     }
 }
 
-// delete a folder
-bool DelDir(const QString &path)
+void MyModel::changeDirUp()
 {
-    if (path.isEmpty()){
-        return false;
-    }
-    QDir dir(path);
-    if(!dir.exists()){
-        return true;
-    }
-         dir.setFilter (QDir :: AllEntries | QDir :: NoDotAndDotDot); // Set the filter
-         QFileInfoList fileList = dir.entryInfoList (); // get all file information
-         foreach (QFileInfo file, fileList) {// traverse file information
-                 if (file.isFile ()) {// file, delete
-            file.dir().remove(file.fileName());
-                 } else {// recursive delete
-            DelDir(file.absoluteFilePath());
+//    qDebug() << __FUNCTION__ << __LINE__ << "path " << m_path;
+    QDir dir(m_path);
+    if(dir.cdUp()) // check the direction when
+    {
+        m_path = dir.canonicalPath();
+        if(m_path.back() != '/')
+        {
+            qDebug() << "In here";
+            m_path.append('/');
         }
     }
-         return dir.rmpath (dir.absolutePath ()); // delete folders
+    else
+    {
+        m_path = "";
+    }
+    passAll();
+
+     checkDataLength();
 }
 
-void MyModel::removeData(int row)
+
+void MyModel::removeData(const int& row)
 {
     qDebug() << "index: " << row;
     qDebug() << "length: " << m_data.length();
@@ -124,10 +136,11 @@ void MyModel::removeData(int row)
         return;
 
     DelDir(m_path + m_data.at(row).name);
-    beginRemoveRows(QModelIndex(), row, row);
+    emit beginRemoveRows(QModelIndex(), row, row);
     m_data.removeAt(row);
-    endRemoveRows();
+    emit endRemoveRows();
 
+     checkDataLength();
 }
 
 void MyModel::insertData(int row, Data data)
@@ -135,17 +148,33 @@ void MyModel::insertData(int row, Data data)
     if (row < 0 || row >= m_data.count())
         return;
 
-    beginInsertRows(QModelIndex(), row, row);
+    emit beginInsertRows(QModelIndex(), row, row);
     m_data.insert(row, data);
-    endInsertRows();
+    emit endInsertRows();
 }
 
 void MyModel::passAll()
 {
-//    m_path = QDir::cleanPath(m_path);
-    QDir dir(m_path);
+    emit visibleBack(true);
+    if(m_path == "")
+    {
+        emit visibleBack(false);
+        emit beginResetModel();
+        m_data.clear();
+        QFileInfoList drives = QDir::drives();
+        for(QFileInfo drive : drives)
+        {
+            QString temp = drive.path();
+            temp.chop(1);
+            m_data << Data(temp, "qrc:images/drive.png", unchecked);
+        }
+        emit endResetModel();
 
-    beginResetModel();
+
+        return ;
+    }
+    QDir dir(m_path);
+    emit beginResetModel();
     m_data.clear();
     for(QFileInfo var: dir.entryInfoList())
     {
@@ -162,14 +191,15 @@ void MyModel::passAll()
              m_data << Data(var.fileName(), "qrc:images/file.png", false);
         }
     }
-    endResetModel();
+    emit endResetModel();
 }
 
+//filter the folder
 void MyModel::passFile()
 {
     QDir dir(m_path);
 
-    beginResetModel();
+    emit beginResetModel();
     m_data.clear();
     for(QFileInfo var: dir.entryInfoList())
     {
@@ -178,14 +208,15 @@ void MyModel::passFile()
              m_data << Data(var.fileName(), "qrc:images/file.png", false);
         }
     }
-    endResetModel();
+    emit endResetModel();
 }
 
+//filter the file
 void MyModel::passFolder()
 {
     QDir dir(m_path);
 
-    beginResetModel();
+    emit beginResetModel();
     m_data.clear();
     for(QFileInfo var: dir.entryInfoList())
     {
@@ -199,13 +230,93 @@ void MyModel::passFolder()
         }
 
     }
-    endResetModel();
+    emit endResetModel();
+}
+
+// delete a folder
+bool MyModel::DelDir(const QString &path)
+{
+    if (path.isEmpty()){
+        return false;
+    }
+    QDir dir(path);
+    if(!dir.exists()){
+        return true;
+    }
+    dir.setFilter (QDir :: AllEntries | QDir :: NoDotAndDotDot); // Set the filter
+    QFileInfoList fileList = dir.entryInfoList (); // get all file information
+    foreach (QFileInfo file, fileList) {// traverse file information
+        if (file.isFile ()) {// file, delete
+            file.dir().remove(file.fileName());
+        }
+        else // recursive delete
+        {
+            DelDir(file.absoluteFilePath());
+        }
+    }
+    return dir.rmpath (dir.absolutePath ()); // delete folders
 }
 
 void MyModel::toggelStatus(int row)
 {
     m_data[row].check = !m_data.at(row).check;
 }
+
+bool MyModel::searchDataRecursive(const QString& path, const QString& fileName)
+{
+    qDebug() << __FUNCTION__ << __LINE__ << ": We get " << path;
+    if( path.isEmpty() )
+    {
+        return false;
+    }
+
+    QDir dir(path);
+    if(!dir.exists())
+    {
+        return true;
+    }
+    dir.setFilter( QDir:: AllEntries | QDir :: NoDotAndDotDot);
+    QFileInfoList fileList = dir.entryInfoList();
+    for(QFileInfo file : fileList)
+    {   
+        if( file.isFile())
+        {
+            if(file.fileName().contains(fileName))
+            {
+//                emit beginResetModel();
+                m_data << Data(file.filePath(), "qrc:images/file.png", false);
+//                emit endResetModel();
+            }
+        }
+        else
+        {
+//            if(file.fileName().contains(fileName))
+//            {
+//                emit beginResetModel();
+//                m_data << Data(file.fileName(), "qrc:images/folder.png", false);
+//                emit endResetModel();
+//            }
+            searchDataRecursive(file.absoluteFilePath(), fileName);
+        }
+    }
+    return true;
+}
+
+
+void MyModel::search(const QString& fileName)
+{
+    m_data.clear();
+
+    emit beginResetModel();
+    searchDataRecursive(m_path, fileName);
+    emit endResetModel();
+    qDebug() << "Hilll";
+    if(m_data.length() == 0)
+    {
+        emit noData(true);
+    }
+}
+
 
 
 

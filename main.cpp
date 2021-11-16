@@ -8,25 +8,6 @@
 
 #include <QQuickView>
 
-int main1( int argc, char** argv ) {
-    QGuiApplication app( argc, argv );
-
-    MyModel model;
-    DataEntryModel dataEntryModel;
-
-    QQuickView view;
-    view.setResizeMode(QQuickView::SizeRootObjectToView);
-
-    QQmlContext *context = view.engine()->rootContext();
-    context->setContextProperty("myModel", &model);
-//    context->setContextProperty("DataEntryModel", &dataEntryModel);
-
-    view.setSource(QUrl("qrc:main.qml"));
-//    view.show();
-
-    return app.exec();
-}
-
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
