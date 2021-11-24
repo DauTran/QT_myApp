@@ -28,6 +28,7 @@ Window {
             height: 36
             ToolButton
             {
+                id: headerMenuBtn
                 height: parent.height
                 width: this.height
                 indicator: Image{
@@ -46,9 +47,14 @@ Window {
 
             Label{
                 anchors.centerIn: parent
-                text: "File explore"
+                text: myModel.path
                 font.pixelSize: 20
-                elide: Label.ElideRight
+                width: parent.width - headerMenuBtn.width - btnBack.width
+                elide: Label.ElideLeft
+//                onActiveFocusChanged:
+//                {
+//                    console.log("changed width");
+//                }
             }
 
             Button {
@@ -107,7 +113,7 @@ Window {
                         color: btnFind.down ? "#d6d6d6" : "#F1C40F"
                     }
 
-                    onClicked: { myModel.search(txtInput.text); console.log("fine")}
+                    onClicked: { myModel.search(txtInput.text);}
                 }
         }
 
@@ -145,7 +151,7 @@ Window {
                         indicator.height: 25
 
                         checked: model.check
-                        onClicked: { myModel.toggelStatus(model.index); console.log("Checked box");}
+                        onClicked: { myModel.toggelStatus(model.index);}
                     }
                 }
 
@@ -194,7 +200,7 @@ Window {
         Connections
         {
             target: myModel
-            onNoData:
+            onCountChanged:
             {
                 txtInfo.visible =  visibleData;
             }
@@ -203,74 +209,128 @@ Window {
         Connections
         {
             target: myModel
-            onVisibleBack:
+            onInRoot:
             {
                 btnBack.visible =  visibleButton;
+                footerChoice.enabled = visibleButton;
+                footerNewFolder.enabled = visibleButton;
             }
         }
-
-        footer: Rectangle
+        Connections
         {
-            id: footer
-            width: parent.width
-            height: 30
-            color: "#F4F1F0"
-            Button
+            target: subWindowInsert
+            onAccepted:
             {
-                id: footerOption
-                property bool status: false
-                anchors.right: parent.right
-                text: "..."
-                font.pixelSize: 20
-                width: this.height
-
-                onClicked:
-                {
-                    console.log("ok");
-                }
+                console.log("I got " + subWindowInsert.check);
+                myModel.addFolder(subWindowInsert.check);
             }
-            Button
-            {
-                id: footerChoice
-                icon.source: "images/singleChoice.png"
-                onClicked:
-                {
-                    rootPage.status = !rootPage.status;
-                }
-            }
-            Button
-            {
-                id: footerSearch
-                icon.source: "images/search.png"
-                x: footerDelete.width + 5
-                enabled: !rootPage.status
-                onClicked: {
-                    console.log("search");
-                    if(searchBar.state == "NORMAL")
-                    {
-                        searchBar.state = "SEARCH"
-                    }
-                    else
-                    {
-                        searchBar.state = "NORMAL"
-                    }
-                }
-            }
-            Button
-            {
-                id: footerDelete
-                icon.source: "images/remove.png"
-                x: footerSearch.x + footerSearch.width + 5
-                enabled: rootPage.status
-                onClicked:
-                {
-                    console.log("delete Pressed ")
-
-                    myModel.deleteSelection();
-                }
-            }
-
         }
+
+        Menu {
+            id: optionMenu
+            MenuItem
+            {
+                text: "Select All"
+            }
+        }
+
+        footer:RowLayout
+            {
+                id: footer
+                spacing: 0
+                height: 30
+                Button
+                {
+                    id: footerOption
+                    property bool status: false
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    display: AbstractButton.TextUnderIcon
+//                    highlighted: true
+//                    flat: true
+                    text: "..."
+                    font.pixelSize: 20
+                    onClicked:
+                    {
+                        optionMenu.popup(Qt.point(0, footer.y - 80 + subWindowConfirmDelete.height));
+                    }
+                }
+                Button
+                {
+                    id: footerChoice
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    icon.source: "images/singleChoice.png"
+                    display: AbstractButton.TextUnderIcon
+                    text: "select"
+                    enabled: false
+                    onClicked:
+                    {
+                        rootPage.status = !rootPage.status;
+                    }
+                }
+                Button
+                {
+                    id: footerSearch
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    icon.source: "images/search.png"
+                    display: AbstractButton.TextUnderIcon
+                    text: "search"
+                    enabled: !rootPage.status
+                    onClicked: {
+                        console.log("search");
+                        if(searchBar.state == "NORMAL")
+                        {
+                            searchBar.state = "SEARCH"
+                        }
+                        else
+                        {
+                            searchBar.state = "NORMAL"
+                        }
+                    }
+                }
+                Button
+                {
+                    id: footerDelete
+                    Layout.fillWidth: true
+                    icon.source: "images/remove.png"
+                    Layout.fillHeight: true
+                    display: AbstractButton.TextUnderIcon
+                    text: "delete"
+                    enabled: rootPage.status
+                    onClicked:
+                    {
+                        subWindowConfirmDelete.open();
+
+                    }
+                    Connections
+                    {
+                        target: subWindowConfirmDelete
+                        onAccepted:
+                        {
+                           myModel.deleteSelection();
+                        }
+                    }
+                }
+
+                Button
+                {
+                    id: footerNewFolder
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    icon.source: "images/addFolder.png"
+                    display: AbstractButton.TextUnderIcon
+                    text: "add"
+                    enabled: false
+                    onClicked:
+                    {
+                        console.log("add folder Pressed");
+                        subWindowInsert.open();
+                    }
+                }
+            }
+//        }
     }
 
     //menubar
@@ -333,6 +393,30 @@ Window {
             }
             ScrollIndicator.vertical: ScrollIndicator {}
         }
+    }
+
+    Dialog
+    {
+        id: subWindowInsert
+        property string check : inputText.text
+        title: "Add new folder"
+        TextField
+        {
+            id: inputText
+            placeholderText: qsTr("Enter the name of folder")
+        }
+        standardButtons: StandardButton.Save | StandardButton.Cancel
+    }
+
+    Dialog
+    {
+        id: subWindowConfirmDelete
+        title: "Delete the folders"
+        Text
+        {
+            text: qsTr("Are you sure?")
+        }
+        standardButtons: StandardButton.Ok | StandardButton.Cancel
     }
 
 }

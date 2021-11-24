@@ -11,5 +11,7 @@
         <file>common/Structure.qml</file>
         <file>images/search.png</file>
         <file>images/singleChoice.png</file>
+        <file>images/addFolder.png</file>
+        <file>common/MenuContext.qml</file>
     </qresource>
 </RCC>
