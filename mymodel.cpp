@@ -1,4 +1,4 @@
-
+//Ho va ten Tran The Dau(Dautt1)
 #include "mymodel.h"
 
 MyModel::MyModel(QObject *parent) : QAbstractListModel(parent), m_path("")

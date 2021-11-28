@@ -12,7 +12,7 @@ Window {
     visible: true
     width: 550
     height: 600
-    title: qsTr("Hello World")
+    title: qsTr("File Manage")
     minimumHeight: 500
     minimumWidth: 300
 
@@ -455,21 +455,6 @@ Window {
                     anchors.fill: parent
                     onClicked:
                     {
-//                        if(text == "All")
-//                        {
-////                            console.log("all ");
-//                            myModel.setPassAll();
-//                        }
-//                        else if(text == "File")
-//                        {
-////                            console.log("file ");
-//                            myModel.setPassFile();
-//                        }
-//                        else if(text == "Folder")
-//                        {
-////                            console.log("folder")
-//                            myModel.setPassFolder();
-//                        }
                         switch(model.index)
                         {
                         case 0:
@@ -540,35 +525,13 @@ Window {
         title: "Add the folders"
         Text
         {
-            text: qsTr("You can not create folder " + txtInput.text);
+            text: qsTr("You can not create folder <b>" + subWindowInsert.check + "</b>");
         }
         standardButtons: StandardButton.Ok
     }
+
 }
 
-
-//        ListView
-//        {
-//            id: view
-//            anchors.fill: parent
-
-//            model: DataEntryModel {id: dataEntryModel; path: "A:/Fresher C++/"}
-
-//            delegate: ListDelegate
-//            {
-////              use the difined model role "display"
-//                text: model.display
-
-//                onClicked: {
-//                    // make this delegate the current item, highlight
-//                    view.currentIndex = index
-//                    view.focus = true
-//                }
-
-//            }
-//            highlight: Rectangle { color: "lightsteelblue"}
-////            highlight: ListHighlight { }
-//        }
 
 
 
