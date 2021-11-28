@@ -1,18 +1,17 @@
 import QtQuick 2.5
 import QtQuick.Window 2.12
-import QtQuick.Controls 2.1
+import QtQuick.Controls 2.5
 import QtQuick.Dialogs 1.2
 import QtQuick.Controls.Material 2.1
 import QtQuick.Layouts 1.2
 
 import org.mymodel 1.0
-import "common"
 
 Window {
     id: window
     visible: true
     width: 550
-    height: 480
+    height: 600
     title: qsTr("Hello World")
     minimumHeight: 500
     minimumWidth: 300
@@ -51,10 +50,6 @@ Window {
                 font.pixelSize: 20
                 width: parent.width - headerMenuBtn.width - btnBack.width
                 elide: Label.ElideLeft
-//                onActiveFocusChanged:
-//                {
-//                    console.log("changed width");
-//                }
             }
 
             Button {
@@ -90,10 +85,6 @@ Window {
                 State { name: "NORMAL"; PropertyChanges{ target: searchBar; height: 10; opacity: 0 } },
                 State { name: "SEARCH" ;PropertyChanges{ target: searchBar; height: 35; opacity: 100 } }
             ]
-//            RowLayout
-//            {
-//                width: parent.width
-//                height: parent.height
                 TextField {
                     id: txtInput;
                     placeholderText: qsTr("Type here...")
@@ -117,7 +108,7 @@ Window {
                 }
         }
 
-        property bool status: false
+        property bool status: false // to visible or invisibl the check box of each element
         ListView {
             id: _viewCenter
             anchors.top: searchBar.bottom
@@ -213,7 +204,9 @@ Window {
             {
                 btnBack.visible =  visibleButton;
                 footerChoice.enabled = visibleButton;
-                footerNewFolder.enabled = visibleButton;
+                footer.visible = visibleButton;
+                rootPage.status = false;
+                headerMenuBtn.enabled = visibleButton;
             }
         }
         Connections
@@ -221,24 +214,33 @@ Window {
             target: subWindowInsert
             onAccepted:
             {
-                console.log("I got " + subWindowInsert.check);
-                myModel.addFolder(subWindowInsert.check);
+                if(!myModel.addFolder(subWindowInsert.check))
+                {
+                    subWindowFailAddFolder.open();
+                }
             }
         }
 
         Menu {
             id: optionMenu
-            MenuItem
-            {
-                text: "Select All"
+            bottomMargin: 50
+            MenuItem {
+                text: qsTr("Select All")
+                onTriggered: myModel.selecAllItems();
+            }
+            MenuItem {
+                text: qsTr("Deselect All")
+                onTriggered: myModel.deselecAllItems();
             }
         }
+
 
         footer:RowLayout
             {
                 id: footer
                 spacing: 0
                 height: 30
+                visible: false
                 Button
                 {
                     id: footerOption
@@ -246,13 +248,42 @@ Window {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     display: AbstractButton.TextUnderIcon
-//                    highlighted: true
-//                    flat: true
                     text: "..."
                     font.pixelSize: 20
-                    onClicked:
-                    {
-                        optionMenu.popup(Qt.point(0, footer.y - 80 + subWindowConfirmDelete.height));
+                    highlighted: false
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked:
+                        {
+                            if(footer.height == 50)
+                            {
+                                footer.height = 30;
+                                if(optionMenu.visible)
+                                {
+                                    optionMenu.close();
+                                }
+                            }
+                            else
+                            {
+                                footer.height = 50;
+                            }
+
+                            if(rootPage.status)
+                            {
+
+                                optionMenu.popup(Qt.point(0, footer.y));
+                            }
+                        }
+
+                        hoverEnabled: true
+
+                        onEntered: {
+                            footerOption.highlighted = true;
+                        }
+
+                        onExited: {
+                            footerOption.highlighted = false;
+                        }
                     }
                 }
                 Button
@@ -263,10 +294,32 @@ Window {
                     icon.source: "images/singleChoice.png"
                     display: AbstractButton.TextUnderIcon
                     text: "select"
-                    enabled: false
-                    onClicked:
-                    {
-                        rootPage.status = !rootPage.status;
+                    enabled: true
+                    highlighted: false
+                    MouseArea{
+                        anchors.fill: parent
+                        onClicked:
+                        {
+                            searchBar.state = "NORMAL";
+                            rootPage.status = !rootPage.status;
+                            if(rootPage.status)
+                            {
+                                myModel.stopTimer();
+                            }
+                            else
+                            {
+                                myModel.startTimer();
+                            }
+                        }
+                        hoverEnabled: true
+
+                        onEntered: {
+                            footerChoice.highlighted = true;
+                        }
+
+                        onExited: {
+                            footerChoice.highlighted = false;
+                        }
                     }
                 }
                 Button
@@ -278,15 +331,29 @@ Window {
                     display: AbstractButton.TextUnderIcon
                     text: "search"
                     enabled: !rootPage.status
-                    onClicked: {
-                        console.log("search");
-                        if(searchBar.state == "NORMAL")
-                        {
-                            searchBar.state = "SEARCH"
+                    highlighted: false
+                    MouseArea{
+                        anchors.fill: parent
+                        onClicked: {
+                            console.log("search");
+                            if(searchBar.state == "NORMAL")
+                            {
+                                searchBar.state = "SEARCH";
+                                myModel.stopTimer();
+                            }
+                            else
+                            {
+                                searchBar.state = "NORMAL"
+                                myModel.startTimer();
+                            }
                         }
-                        else
-                        {
-                            searchBar.state = "NORMAL"
+                        hoverEnabled: true
+                        onEntered: {
+                            footerSearch.highlighted = true;
+                        }
+
+                        onExited: {
+                            footerSearch.highlighted = false;
                         }
                     }
                 }
@@ -299,17 +366,31 @@ Window {
                     display: AbstractButton.TextUnderIcon
                     text: "delete"
                     enabled: rootPage.status
-                    onClicked:
+                    highlighted: false
+                    MouseArea
                     {
-                        subWindowConfirmDelete.open();
-
-                    }
-                    Connections
-                    {
-                        target: subWindowConfirmDelete
-                        onAccepted:
+                        anchors.fill: parent
+                        onClicked:
                         {
-                           myModel.deleteSelection();
+                            subWindowConfirmDelete.open();
+
+                        }
+                        Connections
+                        {
+                            target: subWindowConfirmDelete
+                            onAccepted:
+                            {
+                                myModel.deleteSelection();
+                            }
+                        }
+                        hoverEnabled: true
+
+                        onEntered: {
+                            footerDelete.highlighted = true;
+                        }
+
+                        onExited: {
+                            footerDelete.highlighted = false;
                         }
                     }
                 }
@@ -320,17 +401,31 @@ Window {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     icon.source: "images/addFolder.png"
+
                     display: AbstractButton.TextUnderIcon
                     text: "add"
-                    enabled: false
-                    onClicked:
+                    enabled: true
+                    highlighted: false
+
+                    MouseArea
                     {
-                        console.log("add folder Pressed");
-                        subWindowInsert.open();
+                        anchors.fill: parent
+                        onClicked:
+                        {
+                            subWindowInsert.open();
+                        }
+                        hoverEnabled: true
+
+                        onEntered: {
+                            footerNewFolder.highlighted = true;
+                        }
+
+                        onExited: {
+                            footerNewFolder.highlighted = false;
+                        }
                     }
                 }
             }
-//        }
     }
 
     //menubar
@@ -360,17 +455,37 @@ Window {
                     anchors.fill: parent
                     onClicked:
                     {
-                        if(text == "All")
+//                        if(text == "All")
+//                        {
+////                            console.log("all ");
+//                            myModel.setPassAll();
+//                        }
+//                        else if(text == "File")
+//                        {
+////                            console.log("file ");
+//                            myModel.setPassFile();
+//                        }
+//                        else if(text == "Folder")
+//                        {
+////                            console.log("folder")
+//                            myModel.setPassFolder();
+//                        }
+                        switch(model.index)
                         {
-                            myModel.passAll();
-                        }
-                        else if(text == "File")
-                        {
-                            myModel.passFile();
-                        }
-                        else if(text == "Folder")
-                        {
-                            myModel.passFolder();
+                        case 0:
+
+                            console.log("file ");
+                            myModel.setPassFile();
+                            break;
+
+                        case 1:
+                            console.log("folder");
+                            myModel.setPassFolder();
+                            break;
+
+                        default:
+                            console.log("all ");
+                            myModel.setPassAll();
                         }
                     }
                 }
@@ -380,15 +495,15 @@ Window {
             {
                 ListElement
                 {
-                    text: qsTr("All")
-                }
-                ListElement
-                {
                     text: qsTr("File")
                 }
                 ListElement
                 {
                     text: qsTr("Folder")
+                }
+                ListElement
+                {
+                    text: qsTr("All")
                 }
             }
             ScrollIndicator.vertical: ScrollIndicator {}
@@ -419,6 +534,16 @@ Window {
         standardButtons: StandardButton.Ok | StandardButton.Cancel
     }
 
+    Dialog
+    {
+        id: subWindowFailAddFolder
+        title: "Add the folders"
+        Text
+        {
+            text: qsTr("You can not create folder " + txtInput.text);
+        }
+        standardButtons: StandardButton.Ok
+    }
 }
 
 

@@ -13,5 +13,6 @@
         <file>images/singleChoice.png</file>
         <file>images/addFolder.png</file>
         <file>common/MenuContext.qml</file>
+        <file>common/Toolbar.qml</file>
     </qresource>
 </RCC>

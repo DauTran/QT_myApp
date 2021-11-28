@@ -7,6 +7,7 @@
 
 enum Statuses { UNCHECKED, CHECK };
 enum Icon {DISK_ICON, FOLDER_ICON, FILE_ICON};
+enum Filter {PASS_ALL, PASS_FOLDER, PASS_FILE};
 
 struct Data {
     Data() {}
@@ -49,11 +50,13 @@ signals:
     void countChanged(bool visibleData); // inform no data in the list data
     void inRoot(bool visibleButton); // at the root no visible back button
 
+
 public slots:
-    void changeData(int row);
+    void getModifierSystem();
+    void changeData(const int& row);
     void changeDirUp();
     void removeData(const int& row);
-    void insertData(int row, const Data& data);
+    void insertData(const int& row, const Data& data);
     void passAll();
     void passFile();
     void passFolder();
@@ -63,12 +66,23 @@ public slots:
     bool searchDataRecursive(const QString& path, const QString& fileName);
     void search(const QString& fileName);
     bool addFolder(const QString& fileName);
+    bool selecAllItems();
+    bool deselecAllItems();
 
+    void startTimer();
+    void stopTimer();
+
+    void setPassAll();
+    void setPassFolder();
+    void setPassFile();
 
 private: //members
     QVector< Data > m_data;
     QString m_path;
-    QFileSystemWatcher *m_notifier;
+    QTimer *m_timer;
+
+    void (MyModel::*fPtr)();
+
 };
 
 #endif // MYMODEL_H

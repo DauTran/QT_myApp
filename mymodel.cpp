@@ -3,15 +3,17 @@
 
 MyModel::MyModel(QObject *parent) : QAbstractListModel(parent), m_path("")
 {
-    passAll();
+    fPtr = &MyModel::passAll;
 
-    m_notifier = new QFileSystemWatcher();
-    QObject::connect(m_notifier, &QFileSystemWatcher::directoryChanged, this, &MyModel::passAll);
+    m_timer = new QTimer();
+    QObject::connect(m_timer, &QTimer::timeout, this, &MyModel::getModifierSystem);
+    m_timer->start(1000);
 }
 
 MyModel::~MyModel()
 {
-    delete m_notifier;
+    delete m_timer;
+//    delete m_filter;
 }
 
 int MyModel::rowCount(const QModelIndex &parent) const
@@ -26,7 +28,6 @@ QVariant MyModel::data(const QModelIndex &index, int role) const
     if ( !index.isValid() )
         return QVariant();
 
-//    const Data &data = m_data.at(index.row());
     if ( role == NameRole ){
         return m_data.at(index.row()).name;
     }
@@ -83,6 +84,7 @@ void MyModel::checkDataLength()
     }
 }
 
+//remove all data in List
 void MyModel::clear()
 {
     emit beginResetModel();
@@ -90,6 +92,7 @@ void MyModel::clear()
     emit endResetModel();
 }
 
+//delete the item when button check is true
 void MyModel::deleteSelection()
 {
     for(int i = 0; i < m_data.length(); i++)
@@ -102,19 +105,27 @@ void MyModel::deleteSelection()
     }
 }
 
+//set the path at exist position
 void MyModel::setPath(const QString& path)
 {
     m_path = path;
     emit changedPath();
 }
 
+//get the path of exist position
 QString MyModel::getPath() const
 {
-//    qDebug() << __FUNCTION__ << __LINE__ << "here";
     return m_path;
 }
 
-void MyModel::changeData(int row)
+//this function get receiv signal from system watcher
+void MyModel::getModifierSystem()
+{
+    (this->*fPtr)();
+}
+
+//this function to move into the folder at the row, which was clicked by the user
+void MyModel::changeData(const int& row)
 {
     if( FILE_ICON != m_data.at(row).icon)
     {
@@ -129,6 +140,7 @@ void MyModel::changeData(int row)
         passAll();
         checkDataLength();
     }
+
 }
 
 //this function to back the parent folder(like cd command)
@@ -143,23 +155,21 @@ void MyModel::changeDirUp()
             m_path.append('/');
         }
     }
-    else
+    else //set at the root
     {
         m_path = "";
     }
     passAll();
-
     checkDataLength();
 }
 
 //this function to remove the folder/file at a row
 void MyModel::removeData(const int& row)
 {
+
     if (row < 0 || row >= m_data.count())
         return;
-
     emit beginRemoveRows(QModelIndex(), row, row);
-//    QFileInfo temp(m_path + m_data.at(row).name);
     QDir dir(m_path + m_data.at(row).name);
 
     if(FOLDER_ICON == m_data.at(row).icon)
@@ -176,9 +186,8 @@ void MyModel::removeData(const int& row)
 }
 
 //this function to insert the folder/file at a row
-void MyModel::insertData(int row, const Data& data)
+void MyModel::insertData(const int& row, const Data& data)
 {
-    qDebug() << "row in dec " << row;
     if (row < 0)
         return;
 
@@ -207,7 +216,6 @@ void MyModel::passAll()
     }
     else
     {
-        m_notifier->addPath(m_path);
         QDir dir(m_path);
         emit beginResetModel();
         m_data.clear();
@@ -229,6 +237,7 @@ void MyModel::passAll()
         emit endResetModel();
     }
     emit changedPath();
+    checkDataLength();
 }
 
 //filter the folder
@@ -275,9 +284,9 @@ void MyModel::toggelStatus(int row)
     m_data[row].check = !m_data.at(row).check;
 }
 
+//this function to search the folder/file and append to list m_data
 bool MyModel::searchDataRecursive(const QString& path, const QString& fileName)
 {
-//    qDebug() << __FUNCTION__ << __LINE__ << ": We get " << path;
     if( path.isEmpty() )
     {
         return false;
@@ -311,6 +320,7 @@ bool MyModel::searchDataRecursive(const QString& path, const QString& fileName)
     return true;
 }
 
+//this function to search the name of file/folder and inform to Listview
 void MyModel::search(const QString& fileName)
 {
     m_data.clear();
@@ -339,7 +349,60 @@ bool MyModel::addFolder(const QString& fileName)
     return status;
 }
 
+bool MyModel::selecAllItems()
+{
+    emit beginResetModel();
+    for(QVector<Data>::Iterator it = m_data.begin(); it != m_data.end(); it++)
+    {
+        it->check = true;
+    }
+    emit endResetModel();
+    return true;
+}
 
+bool MyModel::deselecAllItems()
+{
+    emit beginResetModel();
+    for(QVector<Data>::Iterator it = m_data.begin(); it != m_data.end(); it++)
+    {
+        it->check = false;
+    }
+    emit endResetModel();
+    return true;
+}
+
+void MyModel::stopTimer()
+{
+    if(m_timer->isActive())
+    {
+        m_timer->stop();
+    }
+}
+
+void MyModel::startTimer()
+{
+
+    if(!m_timer->isActive())
+    {
+        m_timer->start(1000);
+
+    }
+}
+
+void MyModel::setPassAll()
+{
+    fPtr = &MyModel::passAll;
+}
+
+void MyModel::setPassFolder()
+{
+    fPtr = &MyModel::passFolder;
+}
+
+void MyModel::setPassFile()
+{
+    fPtr = &MyModel::passFile;
+}
 
 
 
