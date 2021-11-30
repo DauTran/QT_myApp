@@ -1,17 +1,19 @@
-#include <QDir>
-#include <QtCore>
+//Ho va ten Tran The Dau(Dautt1)
 #include "mymodel.h"
 
 MyModel::MyModel(QObject *parent) : QAbstractListModel(parent), m_path("")
 {
-    QFileInfoList drives = QDir::drives();
-    for(QFileInfo drive : drives)
-    {
-        QString temp = drive.path();
-        temp.chop(1);
-        m_data << Data(temp, "qrc:images/drive.png");
+    fPtr = &MyModel::passAll;
 
-    }
+    m_timer = new QTimer();
+    QObject::connect(m_timer, &QTimer::timeout, this, &MyModel::getModifierSystem);
+    m_timer->start(1000);
+}
+
+MyModel::~MyModel()
+{
+    delete m_timer;
+//    delete m_filter;
 }
 
 int MyModel::rowCount(const QModelIndex &parent) const
@@ -26,12 +28,30 @@ QVariant MyModel::data(const QModelIndex &index, int role) const
     if ( !index.isValid() )
         return QVariant();
 
-    const Data &data = m_data.at(index.row());
     if ( role == NameRole ){
-        return data.name;
+        return m_data.at(index.row()).name;
     }
     else if ( role == IconRole )
-        return data.icon;
+    {
+        QString iconPath = "";
+        switch (m_data.at(index.row()).icon)
+        {
+        case DISK_ICON:
+            iconPath = "qrc:images/drive.png";
+            break;
+        case FOLDER_ICON:
+            iconPath = "qrc:images/folder.png";
+            break;
+        case FILE_ICON:
+            iconPath = "qrc:images/file.png";
+            break;
+        }
+        return iconPath;
+    }
+    else if (role == CheckRole)
+    {
+        return m_data.at(index.row()).check;
+    }
     else
         return QVariant();
 }
@@ -39,12 +59,32 @@ QVariant MyModel::data(const QModelIndex &index, int role) const
 QHash<int, QByteArray> MyModel::roleNames() const
 {
     static QHash<int, QByteArray> mapping {
-          {NameRole, "name"},
-          {IconRole, "icon"},
-      };
+        {NameRole, "name"},
+        {IconRole, "icon"},
+        {CheckRole, "check"},
+    };
     return mapping;
 }
 
+int MyModel::count() const
+{
+    return rowCount(QModelIndex());
+}
+
+void MyModel::checkDataLength()
+{
+
+    if(m_data.length() == 0)
+    {
+        emit countChanged(true);
+    }
+    else
+    {
+        emit countChanged(false);
+    }
+}
+
+//remove all data in List
 void MyModel::clear()
 {
     emit beginResetModel();
@@ -52,121 +92,177 @@ void MyModel::clear()
     emit endResetModel();
 }
 
-//void MyModel::setPath(QString path)
-//{
-//    m_path = path;
-//}
-
-//QString MyModel::getPath() const
-//{
-//    return m_path;
-//}
-
-void MyModel::changeData(int row)
+//delete the item when button check is true
+void MyModel::deleteSelection()
 {
-    QFileInfo temp(m_path + m_data.at(row).name);
-
-    if(temp.isDir())
+    for(int i = 0; i < m_data.length(); i++)
     {
-//         m_path = temp.absolutePath();
-         m_path =  m_path + m_data.at(row).name + "/";
-         qDebug() << "path: " << m_path;
-         passAll();
-    }
-}
-
-// delete a folder
-bool DelDir(const QString &path)
-{
-    if (path.isEmpty()){
-        return false;
-    }
-    QDir dir(path);
-    if(!dir.exists()){
-        return true;
-    }
-         dir.setFilter (QDir :: AllEntries | QDir :: NoDotAndDotDot); // Set the filter
-         QFileInfoList fileList = dir.entryInfoList (); // get all file information
-         foreach (QFileInfo file, fileList) {// traverse file information
-                 if (file.isFile ()) {// file, delete
-            file.dir().remove(file.fileName());
-                 } else {// recursive delete
-            DelDir(file.absoluteFilePath());
+        if(m_data[i].check)
+        {
+            removeData(i);
+            --i;
         }
     }
-         return dir.rmpath (dir.absolutePath ()); // delete folders
 }
 
-void MyModel::removeData(int row)
+//set the path at exist position
+void MyModel::setPath(const QString& path)
 {
-    qDebug() << "index: " << row;
-    qDebug() << "length: " << m_data.length();
+    m_path = path;
+    emit changedPath();
+}
+
+//get the path of exist position
+QString MyModel::getPath() const
+{
+    return m_path;
+}
+
+//this function get receiv signal from system watcher
+void MyModel::getModifierSystem()
+{
+    (this->*fPtr)();
+}
+
+//this function to move into the folder at the row, which was clicked by the user
+void MyModel::changeData(const int& row)
+{
+    if( FILE_ICON != m_data.at(row).icon)
+    {
+        if(m_data.at(row).name.contains('/') ) // using when search file/folder
+        {
+            m_path =  m_data.at(row).name + "/";
+        }
+        else// using in normal case when user click on the folder
+        {
+            m_path =  m_path + m_data.at(row).name + "/";
+        }
+        passAll();
+        checkDataLength();
+    }
+
+}
+
+//this function to back the parent folder(like cd command)
+void MyModel::changeDirUp()
+{
+    QDir dir(m_path);
+    if(dir.cdUp()) // check the direction when
+    {
+        m_path = dir.canonicalPath();
+        if(m_path.back() != '/')
+        {
+            m_path.append('/');
+        }
+    }
+    else //set at the root
+    {
+        m_path = "";
+    }
+    passAll();
+    checkDataLength();
+}
+
+//this function to remove the folder/file at a row
+void MyModel::removeData(const int& row)
+{
+
     if (row < 0 || row >= m_data.count())
         return;
+    emit beginRemoveRows(QModelIndex(), row, row);
+    QDir dir(m_path + m_data.at(row).name);
 
-    DelDir(m_path + m_data.at(row).name);
-    beginRemoveRows(QModelIndex(), row, row);
+    if(FOLDER_ICON == m_data.at(row).icon)
+    {
+        dir.removeRecursively();
+    }
+    else if( FILE_ICON == m_data.at(row).icon )
+    {
+        dir.remove(m_path + m_data.at(row).name);
+    }
     m_data.removeAt(row);
-    endRemoveRows();
-
+    emit endRemoveRows();
+    checkDataLength();
 }
 
-void MyModel::insertData(int row, Data data)
+//this function to insert the folder/file at a row
+void MyModel::insertData(const int& row, const Data& data)
 {
-    if (row < 0 || row >= m_data.count())
+    if (row < 0)
         return;
 
-    beginInsertRows(QModelIndex(), row, row);
+    emit beginInsertRows(QModelIndex(), row, row);
     m_data.insert(row, data);
-    endInsertRows();
+    emit endInsertRows();
 }
 
+//this function to pass all(the folder/file)
 void MyModel::passAll()
 {
-//    m_path = QDir::cleanPath(m_path);
-    QDir dir(m_path);
-
-    beginResetModel();
-    m_data.clear();
-    for(QFileInfo var: dir.entryInfoList())
+    emit inRoot(true);
+    if(m_path == "")
     {
-        if(var.isDir())
+        emit inRoot(false);
+        emit beginResetModel();
+        m_data.clear();
+        QFileInfoList drives = QDir::drives();
+        for(QFileInfo drive : drives)
         {
-            if(var.fileName() == "." || var.fileName() == "..")
-            {
-                continue;
-            }
-            m_data << Data(var.fileName(), "qrc:images/folder.png");
+            QString temp = drive.path();
+            temp.chop(1);
+            m_data << Data(temp, DISK_ICON, UNCHECKED);
         }
-        else if(var.isFile())
-        {
-             m_data << Data(var.fileName(), "qrc:images/file.png");
-        }
+        emit endResetModel();
     }
-    endResetModel();
+    else
+    {
+        QDir dir(m_path);
+        emit beginResetModel();
+        m_data.clear();
+        for(QFileInfo var: dir.entryInfoList())
+        {
+            if(var.isDir())
+            {
+                if(var.fileName() == "." || var.fileName() == "..")
+                {
+                    continue;
+                }
+                m_data << Data(var.fileName(), FOLDER_ICON, UNCHECKED);
+            }
+            else if(var.isFile())
+            {
+                m_data << Data(var.fileName(), FILE_ICON, UNCHECKED);
+            }
+        }
+        emit endResetModel();
+    }
+    emit changedPath();
+    checkDataLength();
 }
 
+//filter the folder
 void MyModel::passFile()
 {
     QDir dir(m_path);
 
-    beginResetModel();
+    emit beginResetModel();
     m_data.clear();
     for(QFileInfo var: dir.entryInfoList())
     {
         if(var.isFile())
         {
-             m_data << Data(var.fileName(), "qrc:images/file.png");
+            m_data << Data(var.fileName(), FILE_ICON, UNCHECKED);
         }
     }
-    endResetModel();
+    emit endResetModel();
 }
 
+//filter the file
 void MyModel::passFolder()
 {
     QDir dir(m_path);
 
-    beginResetModel();
+    emit beginResetModel();
     m_data.clear();
     for(QFileInfo var: dir.entryInfoList())
     {
@@ -176,11 +272,136 @@ void MyModel::passFolder()
             {
                 continue;
             }
-            m_data << Data(var.fileName(), "qrc:images/folder.png");
+            m_data << Data(var.fileName(), FOLDER_ICON, UNCHECKED);
         }
 
     }
-    endResetModel();
+    emit endResetModel();
+}
+
+void MyModel::toggelStatus(int row)
+{
+    m_data[row].check = !m_data.at(row).check;
+}
+
+//this function to search the folder/file and append to list m_data
+bool MyModel::searchDataRecursive(const QString& path, const QString& fileName)
+{
+    if( path.isEmpty() )
+    {
+        return false;
+    }
+
+    QDir dir(path);
+    if(!dir.exists())
+    {
+        return true;
+    }
+    dir.setFilter( QDir:: AllEntries | QDir :: NoDotAndDotDot);
+    QFileInfoList fileList = dir.entryInfoList();
+    for(QFileInfo file : fileList)
+    {   
+        if( file.isFile())
+        {
+            if(file.fileName().contains(fileName))
+            {
+                m_data << Data(file.filePath(), FILE_ICON, UNCHECKED);
+            }
+        }
+        else
+        {
+            if(file.fileName().contains(fileName))
+            {
+                m_data << Data(file.absoluteFilePath(), FOLDER_ICON, UNCHECKED);
+            }
+            searchDataRecursive(file.absoluteFilePath(), fileName);
+        }
+    }
+    return true;
+}
+
+//this function to search the name of file/folder and inform to Listview
+void MyModel::search(const QString& fileName)
+{
+    m_data.clear();
+
+    emit beginResetModel();
+    searchDataRecursive(m_path, fileName);
+    emit endResetModel();
+    checkDataLength();
+}
+
+
+
+bool MyModel::addFolder(const QString& fileName)
+{
+    QDir directory;
+    QString temp = m_path + fileName;
+    bool status = false;
+
+    if(directory.mkdir(temp))
+    {
+        insertData(count(), Data(fileName, FOLDER_ICON, UNCHECKED));
+        status = true;
+    }
+    checkDataLength();
+
+    return status;
+}
+
+bool MyModel::selecAllItems()
+{
+    emit beginResetModel();
+    for(QVector<Data>::Iterator it = m_data.begin(); it != m_data.end(); it++)
+    {
+        it->check = true;
+    }
+    emit endResetModel();
+    return true;
+}
+
+bool MyModel::deselecAllItems()
+{
+    emit beginResetModel();
+    for(QVector<Data>::Iterator it = m_data.begin(); it != m_data.end(); it++)
+    {
+        it->check = false;
+    }
+    emit endResetModel();
+    return true;
+}
+
+void MyModel::stopTimer()
+{
+    if(m_timer->isActive())
+    {
+        m_timer->stop();
+    }
+}
+
+void MyModel::startTimer()
+{
+
+    if(!m_timer->isActive())
+    {
+        m_timer->start(1000);
+
+    }
+}
+
+void MyModel::setPassAll()
+{
+    fPtr = &MyModel::passAll;
+}
+
+void MyModel::setPassFolder()
+{
+    fPtr = &MyModel::passFolder;
+}
+
+void MyModel::setPassFile()
+{
+    fPtr = &MyModel::passFile;
 }
 
 

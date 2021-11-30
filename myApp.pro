@@ -4,8 +4,8 @@
 QT += quick quickcontrols2
 
 CONFIG += c++11
-QML_IMPORT_NAME = io.qt.backend
-QML_IMPORT_MAJOR_VERSION = 1
+#QML_IMPORT_NAME = io.qt.backend
+#QML_IMPORT_MAJOR_VERSION = 1
 
 #CONFIG += qmltypes c++11
 
@@ -21,13 +21,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-        backend.cpp \
-        dataentrymodel.cpp \
         main.cpp \
         mymodel.cpp
 
 #sources to be build
-RESOURCES += qml.qrc
+RESOURCES += \
+    images.qrc \
+    main.qrc
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
 QML_IMPORT_PATH =
@@ -41,8 +41,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-    backend.h \
-    dataentrymodel.h \
     mymodel.h
 
 DISTFILES +=
